@@ -1,15 +1,10 @@
 ### Examples of usage
 
-- peek on each:
-```
-        Validation.of(CLIENT_ERROR, SERVER_ERROR)
-                .peek(__ -> remoteServer.sendErrors());
-       
-        verify(remoteServer, times(2)).sendErrors();
-```
 - validation sequence:
 ```
-        Validation.sequence(Validation.of(CLIENT_ERROR), Validation.success(), Validation.of(SERVER_ERROR))
+        Validation.sequence(Validation.of(CLIENT_ERROR), 
+                            Validation.success(), 
+                            Validation.of(SERVER_ERROR))
                 .forEach(__ -> remoteServer.sendErrors());
         
         verify(remoteServer, times(2)).sendErrors();
@@ -45,7 +40,14 @@
         
         assertTrue(combineRes);
 ```
-- if present an action:
+- peek on each:
+```
+        Validation.of(CLIENT_ERROR, SERVER_ERROR)
+                .peek(__ -> remoteServer.sendErrors());
+       
+        verify(remoteServer, times(2)).sendErrors();
+```
+- if present an action on list of errors:
 ```
         Validation.of(CLIENT_ERROR, SERVER_ERROR)
                 .ifPresent(__ -> remoteServer.sendErrors());
