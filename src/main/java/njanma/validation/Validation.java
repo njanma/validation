@@ -13,6 +13,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import static io.vavr.API.List;
+import static io.vavr.API.Stream;
+
 /**
  * Validation with monadic combinators.
  *
@@ -29,7 +32,7 @@ public interface Validation<Err> extends Value<Err> {
      * @see ErrorValidation
      */
     static <E> Validation<E> of(E result) {
-        return ofAll(Stream.of(result));
+        return ofAll(Stream(result));
     }
 
     /**
@@ -42,7 +45,7 @@ public interface Validation<Err> extends Value<Err> {
      */
     @SafeVarargs
     static <E> Validation<E> of(E first, E... others) {
-        return ofAll(Stream.of(others).prepend(first));
+        return ofAll(Stream(others).prepend(first));
     }
 
     /**
@@ -81,7 +84,7 @@ public interface Validation<Err> extends Value<Err> {
      */
     @SafeVarargs
     static <E> Validation<E> failure(E first, E... errors) {
-        return new ErrorValidation<>(List.of(errors).prepend(first));
+        return new ErrorValidation<>(List(errors).prepend(first));
     }
 
     static <E> Validation<E> failure(Iterable<E> errors) {
@@ -99,7 +102,7 @@ public interface Validation<Err> extends Value<Err> {
      */
     @SafeVarargs
     static <E> Validation<E> chain(Supplier<Validation<E>>... validators) {
-        return chain(Stream.of(validators));
+        return chain(Stream(validators));
     }
 
     /**
@@ -113,10 +116,9 @@ public interface Validation<Err> extends Value<Err> {
      */
     static <E> Validation<E> chain(Stream<Supplier<Validation<E>>> validators) {
         Validation<E> result = validators.head().get();
-        if (validators.tail().nonEmpty()) {
-            return result.andThen(() -> chain(validators.tail()));
-        } else
-            return result;
+        return validators.tail().isEmpty()
+                ? result
+                : result.andThen(() -> chain(validators.tail()));
     }
 
     /**
@@ -130,7 +132,7 @@ public interface Validation<Err> extends Value<Err> {
      */
     @SafeVarargs
     static <E> Validation<E> sequence(Validation<E> firstValidation, Validation<E>... validators) {
-        return sequence(Stream.of(validators).prepend(firstValidation));
+        return sequence(Stream(validators).prepend(firstValidation));
     }
 
     /**
@@ -146,11 +148,6 @@ public interface Validation<Err> extends Value<Err> {
         return Stream.ofAll(validators).foldLeft(Validation.success(), Validation::combine);
     }
 
-    static <E> Validation<E> sequence(java.util.stream.Stream<Validation<E>> validators) {
-        return Objects.requireNonNull(validators, "Stream should be not null!")
-                .reduce(Validation.success(), Validation::combine);
-    }
-
     /**
      * Create parallel sequence of validators which will execute without dependent of result.
      *
@@ -162,7 +159,7 @@ public interface Validation<Err> extends Value<Err> {
      */
     @SafeVarargs
     static <E> Validation<E> parSequence(Supplier<Validation<E>>... validators) {
-        return sequence(Stream.of(validators).flatMap(Future::ofSupplier));
+        return sequence(Stream(validators).flatMap(Future::ofSupplier));
     }
 
     /**
@@ -254,9 +251,8 @@ public interface Validation<Err> extends Value<Err> {
     @Override
     default Validation<Err> peek(Consumer<? super Err> action) {
         Objects.requireNonNull(action, "action is null");
-        if (!isEmpty()) {
-            action.accept(get());
-        }
+        for (Err err : this)
+            action.accept(err);
         return this;
     }
 
