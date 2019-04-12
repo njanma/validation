@@ -92,6 +92,19 @@ public interface Validation<Err> extends Value<Err> {
     }
 
     /**
+     * Narrows a widened {@code Validation<? extends Err>} to {@code Validation<Err>}
+     * by performing a type-safe cast.
+     *
+     * @param validation A {@code Validation}.
+     * @param <Err>      Component type of the {@code Validation}.
+     * @return the given {@code Validation} instance as narrowed type {@code Validation<Err>}.
+     */
+    @SuppressWarnings("unchecked")
+    static <Err> Validation<Err> narrow(Validation<? extends Err> validation) {
+        return (Validation<Err>) validation;
+    }
+
+    /**
      * Create chain of validators which will execute with dependent of result.
      *
      * @param validators - list of errors
@@ -170,7 +183,7 @@ public interface Validation<Err> extends Value<Err> {
      */
     default Validation<Err> combine(Validation<? extends Err> other) {
         Objects.requireNonNull(other, "Other validation should be not null!");
-        return flatMap(v -> other.flatMap(o -> Validation.of(v, o)).orElse(() -> this)).orElse(() -> other);
+        return map(v -> other.flatMap(o -> Validation.of(v, o)).orElse(() -> this)).getOrElse(() -> narrow(other));
     }
 
     /**
